@@ -1,0 +1,27 @@
+ # Directives to hand over to perlFCGI.pl
+ 
+        location ~ "\.fpl(/|$)" {
+                try_files $uri $fastcgi_script_name =404;
+                set $script $document_root$fastcgi_script_name;
+                set $socket /tmp/fcgiwrap_sockets$script.sock;
+
+                # Ensure the socket directory exists
+                if (!-d /tmp/fcgiwrap_sockets) {
+                        set $proxypath http://127.0.0.1:8089/makedir;
+                        proxy_pass $proxypath;
+                }
+
+                # Check if the FastCGI process is running
+                if (-f $socket) {
+                        fastcgi_pass unix:$socket;
+                }
+
+                if (!-f $socket) {
+                        # Start the FastCGI process
+                        set $proxypath http://127.0.0.1:8089/spawnprocess/$script;
+                        proxy_pass $proxypath;
+                        fastcgi_pass unix:$socket;
+                }
+
+
+        }
